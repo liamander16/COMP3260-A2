@@ -228,7 +228,7 @@ class DES {
     /// every 8th bit is a parity bit — each byte must have an odd number of 1s.
     /// Throws IllegalArgumentException if the key length or parity is wrong.
     static boolean checkKeyParity(int[] key) {
-        // TODO (Liam): implement
+        // TODO (Guotai): implement
         return true;
     }
 
@@ -252,7 +252,7 @@ class DES {
 
     /// DES1 — XOR with round key is omitted: E → S-boxes → P
     static int[] f1(int[] R, int[] subkey) {
-        // TODO (Guotai): implement
+        // TODO (Liam): implement
         return new int[32];
     }
 
