@@ -228,7 +228,23 @@ class DES {
     /// every 8th bit is a parity bit — each byte must have an odd number of 1s.
     /// Throws IllegalArgumentException if the key length or parity is wrong.
     static boolean checkKeyParity(int[] key) {
-        // TODO (Guotai): implement
+        if (key.length != 64) {
+            throw new IllegalArgumentException("Key must be exactly 64 bits, got " + key.length);
+        }
+
+        // Check each of the 8 bytes independently
+        for (int b = 0; b < 8; b++) {
+            int ones = 0;
+            // Sum the 8 bits in this byte
+            for (int i = 0; i < 8; i++) {
+                ones += key[b * 8 + i];
+            }
+            // Each byte must contain an odd number of 1-bits (odd parity)
+            if (ones % 2 == 0) {
+                throw new IllegalArgumentException("Key parity error in byte " + b);
+            }
+        }
+
         return true;
     }
 
@@ -241,7 +257,7 @@ class DES {
     }
 
     // =========================================================================
-    // F-functions  (Liam — f0; Guotai — f1, f2, f3)
+    // F-functions  (Liam — f0, f1; Guotai — f2, f3)
     // =========================================================================
 
     /// DES0 — standard F-function: E → XOR(subkey) → S-boxes → P
