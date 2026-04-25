@@ -252,8 +252,26 @@ class DES {
     /// and the left-shift schedule.
     /// @return int[16][48] — one 48-bit subkey per round (0-indexed, round 0 = round 1)
     static int[][] generateSubkeys(int[] key) {
-        // TODO (Liam): implement
-        return new int[16][48];
+        // Apply PC1 to select 56 bits from the 64-bit key (drops parity bits)
+        int[] permutedKey = permute(key, PC1);
+
+        // Split into two 28-bit halves
+        int[] C = java.util.Arrays.copyOfRange(permutedKey, 0, 28);
+        int[] D = java.util.Arrays.copyOfRange(permutedKey, 28, 56);
+
+        int[][] subkeys = new int[16][48];
+        for (int i = 0; i < 16; i++) {
+            // Rotate each half left by the scheduled number of positions
+            C = leftShift(C, SHIFTS[i]);
+            D = leftShift(D, SHIFTS[i]);
+
+            // Concatenate C and D, then apply PC2 to produce the 48-bit subkey
+            int[] CD = new int[56];
+            System.arraycopy(C, 0, CD, 0, 28);
+            System.arraycopy(D, 0, CD, 28, 28);
+            subkeys[i] = permute(CD, PC2);
+        }
+        return subkeys;
     }
 
     // =========================================================================
@@ -262,8 +280,26 @@ class DES {
 
     /// DES0 — standard F-function: E → XOR(subkey) → S-boxes → P
     static int[] f0(int[] R, int[] subkey) {
-        // TODO (Liam): implement
-        return new int[32];
+        int[] expanded = permute(R, E);           // 32 → 48 bits
+        int[] xored    = xor(expanded, subkey);   // mix in round key
+        int[] result   = new int[32];
+
+        // Apply each of the 8 S-boxes to its 6-bit group
+        for (int i = 0; i < 8; i++) {
+            int base = i * 6;
+            // Outer bits form the row, inner 4 bits form the column
+            int row = (xored[base] << 1) | xored[base + 5];
+            int col = (xored[base+1] << 3) | (xored[base+2] << 2)
+                    | (xored[base+3] << 1) |  xored[base+4];
+            int val = S[i][row][col];
+
+            result[i*4]   = (val >> 3) & 1;
+            result[i*4+1] = (val >> 2) & 1;
+            result[i*4+2] = (val >> 1) & 1;
+            result[i*4+3] =  val       & 1;
+        }
+
+        return permute(result, P);                // diffusion
     }
 
     /// DES1 — XOR with round key is omitted: E → S-boxes → P
