@@ -252,7 +252,7 @@ class DES {
     /// and the left-shift schedule.
     /// @return int[16][48] — one 48-bit subkey per round (0-indexed, round 0 = round 1)
     static int[][] generateSubkeys(int[] key) {
-        // TODO (Guotai): implement
+        // TODO (Liam): implement
         return new int[16][48];
     }
 
