@@ -274,8 +274,10 @@ class DES {
 
     /// DES2 — S-boxes replaced by E⁻¹ (compress 48→32): E → XOR(subkey) → E⁻¹ → P
     static int[] f2(int[] R, int[] subkey) {
-        // TODO (Guotai): implement
-        return new int[32];
+        int[] expanded   = permute(R, E);               // 32 → 48 bits
+        int[] xored      = xor(expanded, subkey);       // mix in round key
+        int[] contracted = permute(xored, E_INV);       // 48 → 32 bits (replaces S-boxes)
+        return permute(contracted, P);                  // diffusion
     }
 
     /// DES3 — Permutation P is omitted: E → XOR(subkey) → S-boxes
@@ -310,7 +312,7 @@ class DES {
     /// @param key        64-bit key as a bit array
     /// @return 64-bit plaintext as a bit array
     static int[] decrypt(int[] ciphertext, int[] key) {
-        // TODO (Liam): implement
+        // TODO (Guotai): implement
         return new int[64];
     }
 }
