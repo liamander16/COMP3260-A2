@@ -282,8 +282,28 @@ class DES {
 
     /// DES3 — Permutation P is omitted: E → XOR(subkey) → S-boxes
     static int[] f3(int[] R, int[] subkey) {
-        // TODO (Guotai): implement
-        return new int[32];
+        int[] expanded = permute(R, E);           // 32 → 48 bits
+        int[] xored    = xor(expanded, subkey);   // mix in round key
+        int[] result   = new int[32];
+
+        // Apply each of the 8 S-boxes to its 6-bit group
+        for (int i = 0; i < 8; i++) {
+            int base = i * 6;
+            // Outer bits (first and last of the 6-bit group) form the row index
+            int row = (xored[base] << 1) | xored[base + 5];
+            // Inner 4 bits form the column index
+            int col = (xored[base+1] << 3) | (xored[base+2] << 2)
+                    | (xored[base+3] << 1) |  xored[base+4];
+            int val = S[i][row][col];  // 4-bit value (0–15)
+
+            // Write val as 4 bits into the output
+            result[i*4]   = (val >> 3) & 1;
+            result[i*4+1] = (val >> 2) & 1;
+            result[i*4+2] = (val >> 1) & 1;
+            result[i*4+3] =  val       & 1;
+        }
+
+        return result;  // no permute(P) — that is the DES3 distinction
     }
 
     // =========================================================================
