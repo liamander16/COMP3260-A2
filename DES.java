@@ -221,7 +221,7 @@ class DES {
     }
 
     // =========================================================================
-    // Key schedule  (Liam — checkKeyParity, generateSubkeys)
+    // Key schedule
     // =========================================================================
 
     /// Checks that the supplied 64-bit key has correct odd parity:
@@ -278,28 +278,33 @@ class DES {
     // F-functions  (Liam — f0, f1; Guotai — f2, f3)
     // =========================================================================
 
-    /// DES0 — standard F-function: E → XOR(subkey) → S-boxes → P
-    static int[] f0(int[] R, int[] subkey) {
-        int[] expanded = permute(R, E);           // 32 → 48 bits
-        int[] xored    = xor(expanded, subkey);   // mix in round key
-        int[] result   = new int[32];
-
-        // Apply each of the 8 S-boxes to its 6-bit group
+    /// Applies all 8 S-boxes to a 48-bit input and returns a 32-bit output.
+    /// Each 6-bit group maps to a 4-bit value via its S-box:
+    ///   row = outer bits (bit 0 and bit 5), col = inner 4 bits (bits 1–4).
+    /// @param block 48-bit input (e.g. result of XOR with subkey)
+    /// @return 32-bit output (8 groups × 4 bits)
+    private static int[] applySboxes(int[] block) {
+        int[] result = new int[32];
         for (int i = 0; i < 8; i++) {
             int base = i * 6;
-            // Outer bits form the row, inner 4 bits form the column
-            int row = (xored[base] << 1) | xored[base + 5];
-            int col = (xored[base+1] << 3) | (xored[base+2] << 2)
-                    | (xored[base+3] << 1) |  xored[base+4];
+            int row = (block[base] << 1) | block[base + 5];          // outer bits
+            int col = (block[base+1] << 3) | (block[base+2] << 2)
+                    | (block[base+3] << 1) |  block[base+4];         // inner 4 bits
             int val = S[i][row][col];
-
             result[i*4]   = (val >> 3) & 1;
             result[i*4+1] = (val >> 2) & 1;
             result[i*4+2] = (val >> 1) & 1;
             result[i*4+3] =  val       & 1;
         }
+        return result;
+    }
 
-        return permute(result, P);                // diffusion
+    /// DES0 — standard F-function: E → XOR(subkey) → S-boxes → P
+    static int[] f0(int[] R, int[] subkey) {
+        int[] expanded  = permute(R, E);              // 32 → 48 bits
+        int[] xored     = xor(expanded, subkey);      // mix in round key
+        int[] sboxOut   = applySboxes(xored);         // 48 → 32 bits via S-boxes
+        return permute(sboxOut, P);                   // diffusion
     }
 
     /// DES1 — XOR with round key is omitted: E → S-boxes → P
@@ -318,28 +323,9 @@ class DES {
 
     /// DES3 — Permutation P is omitted: E → XOR(subkey) → S-boxes
     static int[] f3(int[] R, int[] subkey) {
-        int[] expanded = permute(R, E);           // 32 → 48 bits
-        int[] xored    = xor(expanded, subkey);   // mix in round key
-        int[] result   = new int[32];
-
-        // Apply each of the 8 S-boxes to its 6-bit group
-        for (int i = 0; i < 8; i++) {
-            int base = i * 6;
-            // Outer bits (first and last of the 6-bit group) form the row index
-            int row = (xored[base] << 1) | xored[base + 5];
-            // Inner 4 bits form the column index
-            int col = (xored[base+1] << 3) | (xored[base+2] << 2)
-                    | (xored[base+3] << 1) |  xored[base+4];
-            int val = S[i][row][col];  // 4-bit value (0–15)
-
-            // Write val as 4 bits into the output
-            result[i*4]   = (val >> 3) & 1;
-            result[i*4+1] = (val >> 2) & 1;
-            result[i*4+2] = (val >> 1) & 1;
-            result[i*4+3] =  val       & 1;
-        }
-
-        return result;  // no permute(P) — that is the DES3 distinction
+        int[] expanded = permute(R, E);
+        int[] xored    = xor(expanded, subkey);
+        return applySboxes(xored);  // no permute(P) — that is the DES3 distinction
     }
 
     // =========================================================================
