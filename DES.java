@@ -252,7 +252,7 @@ class DES {
     /// and the left-shift schedule.
     /// @return int[16][48] — one 48-bit subkey per round (0-indexed, round 0 = round 1)
     static int[][] generateSubkeys(int[] key) {
-        // TODO (Liam): implement
+        // TODO (Guotai): implement
         return new int[16][48];
     }
 
@@ -332,7 +332,26 @@ class DES {
     /// @param key        64-bit key as a bit array
     /// @return 64-bit plaintext as a bit array
     static int[] decrypt(int[] ciphertext, int[] key) {
-        // TODO (Guotai): implement
-        return new int[64];
+        int[][] subkeys = generateSubkeys(key);
+
+        // Apply initial permutation
+        int[] block = permute(ciphertext, IP);
+
+        // Split into left and right halves
+        int[] L = java.util.Arrays.copyOfRange(block, 0, 32);
+        int[] R = java.util.Arrays.copyOfRange(block, 32, 64);
+
+        // 16 Feistel rounds with subkeys in reverse order
+        for (int i = 0; i < 16; i++) {
+            int[] newR = xor(L, f0(R, subkeys[15 - i]));
+            L = R;
+            R = newR;
+        }
+
+        // Combine halves with final swap (R before L), then apply final permutation
+        int[] combined = new int[64];
+        System.arraycopy(R, 0, combined, 0, 32);
+        System.arraycopy(L, 0, combined, 32, 32);
+        return permute(combined, FP);
     }
 }
