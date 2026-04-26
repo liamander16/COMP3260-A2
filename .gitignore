@@ -38,3 +38,9 @@ replay_pid*
 
 # Built Visual Studio Code Extensions
 *.vsix
+
+*.txt
+
+/out/
+/target/
+/build/
