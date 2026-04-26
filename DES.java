@@ -308,9 +308,10 @@ class DES {
     }
 
     /// DES1 — XOR with round key is omitted: E → S-boxes → P
-    static int[] f1(int[] R, int[] subkey) {
-        // TODO (Liam): implement
-        return new int[32];
+    static int[] f1(int[] R) {
+        int[] expanded  = permute(R, E);              // 32 → 48 bits
+        int[] sboxOut   = applySboxes(expanded);         // 48 → 32 bits via S-boxes
+        return permute(sboxOut, P);
     }
 
     /// DES2 — S-boxes replaced by E⁻¹ (compress 48→32): E → XOR(subkey) → E⁻¹ → P
@@ -343,8 +344,41 @@ class DES {
     /// @param key       64-bit key as a bit array
     /// @param variant   0 = DES0, 1 = DES1, 2 = DES2, 3 = DES3
     static int[][] encrypt(int[] plaintext, int[] key, int variant) {
-        // TODO (Liam): implement
-        return new int[17][64];
+        int[][] subkeys   = generateSubkeys(key);
+        int[][] snapshots = new int[17][64];
+
+        // Apply IP and record pre-round state (Round 0)
+        int[] block = permute(plaintext, IP);
+        snapshots[0] = block;
+
+        int[] L = java.util.Arrays.copyOfRange(block, 0, 32);
+        int[] R = java.util.Arrays.copyOfRange(block, 32, 64);
+
+        // 16 Feistel rounds, subkeys applied forward
+        for (int i = 0; i < 16; i++) {
+            int[] fOut;
+            switch (variant) {
+                case 1:  fOut = f1(R); break;
+                case 2:  fOut = f2(R, subkeys[i]); break;
+                case 3:  fOut = f3(R, subkeys[i]); break;
+                default: fOut = f0(R, subkeys[i]); break;
+            }
+            int[] newR = xor(L, fOut);
+            L = R;
+            R = newR;
+
+            // Snapshot intermediate L||R after this round
+            System.arraycopy(L, 0, snapshots[i + 1], 0, 32);
+            System.arraycopy(R, 0, snapshots[i + 1], 32, 32);
+        }
+
+        // Final swap (R before L) then FP — produces the ciphertext
+        int[] combined = new int[64];
+        System.arraycopy(R, 0, combined, 0, 32);
+        System.arraycopy(L, 0, combined, 32, 32);
+        snapshots[16] = permute(combined, FP);
+
+        return snapshots;
     }
 
     /// Decrypts a 64-bit ciphertext block under the given key (standard DES0).
